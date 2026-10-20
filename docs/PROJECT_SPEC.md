@@ -93,3 +93,15 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - created_at: TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP.
 - 사용자 제공 로그에서 PostgreSQL 16.14 연결, JPA·Flyway 초기화, 기존 테스트 통과 및 Java 17.0.12·Spring Boot 4.0.8 서버 기동을 확인했다(V1 추가 전).
 - users V1 SQL의 실제 적용과 테이블 구조·이메일 UNIQUE 제약을 사용자 조회 결과로 확인했다. V1 추가 후 테스트 XML(1건·실패/오류 0)과 사용자 서버 재시작 로그(버전 1·추가 적용 없음·정상 기동)로 검증했으며 UUID 생성·이메일 정규화·인증 API 코드는 미구현이다.
+
+## categories 물리 설계 확정 (2026-10-20)
+사용자 승인에 따라 V2 마이그레이션을 위한 물리 설계를 확정한다. 이름 길이·필수값·기본값·외래 키 정책을 구체화하기 위한 변경이다.
+- id: UUID PRIMARY KEY, 애플리케이션 생성, DB 기본값 없음.
+- user_id: UUID NOT NULL, users.id 참조, ON DELETE RESTRICT. 카테고리가 있는 사용자 삭제를 차단한다.
+- name: VARCHAR(50) NOT NULL. 애플리케이션에서 앞뒤 공백 제거·빈 이름 검증 후 저장한다. DB에서도 btrim 기준 빈 이름을 CHECK로 차단한다. 영문 대소문자를 구분한다.
+- type: VARCHAR(7) NOT NULL, CHECK로 INCOME·EXPENSE만 허용한다.
+- archived: BOOLEAN NOT NULL DEFAULT FALSE.
+- created_at: TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP.
+- UNIQUE(user_id,type,name)은 보관 상태와 무관하게 적용한다. 보관한 이름도 같은 사용자·유형에서 중복 생성할 수 없다.
+- DELETE API는 보관 처리한다. 보관 카테고리의 신규 거래 선택 가능 여부·복원 정책은 미확정으로 유지한다.
+- V2 SQL 작성과 API 구현을 구분한다. 사용자 소유권 검증·이름 정규화·UUID 생성·카테고리 API는 아직 미구현이다.

@@ -1,6 +1,6 @@
 # Spendly DB 설계
 
-기준일: 2026-10-20. 기준: [PROJECT_SPEC](PROJECT_SPEC.md)의 DB 논리 모델과 도메인 규칙. 아래는 목표 설계이며 실제 스키마·엔티티·마이그레이션은 없다.
+기준일: 2026-10-20. 기준: [PROJECT_SPEC](PROJECT_SPEC.md)의 DB 논리 모델과 도메인 규칙. users V1 적용을 검증했으며 categories V2 적용과 컨텍스트 테스트·서버 재시작을 확인했다(제약조건 SQL 검증 대기). 엔티티와 나머지 테이블은 미구현이다.
 
 ## 논리 모델
 | 테이블 | 필드와 제약 |
@@ -25,7 +25,22 @@ users는 categories·transactions·budgets·subscriptions 각각과 1:N이다. c
 ## 물리 설계에서 남은 결정
 PostgreSQL·JPA·Flyway는 목표 기술이다. UUID 생성 방식, 문자열 길이, 각 필드 null 허용 여부, 시각 컬럼 타입, 인덱스, FK 삭제 정책, 보관 카테고리의 재선택·이름 재사용, 구독 카테고리의 유형·보관 정책, 구독 금액 제약 및 start_date와 월말 보정의 경계 처리는 원본에 상세히 정해져 있지 않다. 구현 전 확인하고 기준 문서와 함께 갱신한다. 추가 제약을 확정된 요구사항처럼 도입하지 않는다.
 
-연결 설정·마이그레이션·백업 복구 검증은 예정이며 [로드맵](ROADMAP.md)에서 관리한다.
+연결·마이그레이션별 검증 상태와 예정된 백업 복구 검증은 [로드맵](ROADMAP.md)에서 관리한다.
+
+## categories 물리 설계 — 2026-10-20 사용자 승인
+첫 카테고리 마이그레이션을 위해 PROJECT_SPEC과 함께 구체화했다.
+
+| 컬럼 | 정의 |
+| --- | --- |
+| id | UUID PRIMARY KEY, 애플리케이션 생성 |
+| user_id | UUID NOT NULL, users.id 참조, ON DELETE RESTRICT |
+| name | VARCHAR(50) NOT NULL, btrim 기준 빈 이름 차단 |
+| type | VARCHAR(7) NOT NULL, INCOME·EXPENSE CHECK |
+| archived | BOOLEAN NOT NULL DEFAULT FALSE |
+| created_at | TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP |
+
+SQL: [V2__create_categories.sql](../backend/src/main/resources/db/migration/V2__create_categories.sql).
+UNIQUE(user_id,type,name)은 보관 여부와 관계없이 적용하며 이름은 대소문자를 구분한다. 애플리케이션에서 앞뒤 공백 제거와 빈 이름 검증을 수행할 예정이며, DB CHECK는 정규화를 대신하지 않는다. FK는 사용자 존재만 검사하므로 API에서 인증 사용자 기준 소유권 검증을 별도로 구현해야 한다. 보관 카테고리의 신규 거래 선택·복원 정책은 미확정이다.
 
 ## users 물리 설계 갱신 (2026-10-20)
 첫 마이그레이션 구현을 위한 사용자 승인으로 PROJECT_SPEC과 함께 확정했다. 이 절은 위의 초기 미구현 상태와 미확정 항목 중 users에 해당하는 부분을 갱신한다.
