@@ -51,3 +51,12 @@
 | 빌드 | `.\backend\gradlew.bat -p backend build` | `./backend/gradlew -p backend build` |
 
 이번 작업은 문서 대조만 수행했으며 위 명령 실행 및 버전 조합 검증은 하지 않았다. 프런트엔드 실행 명령은 실제 프로젝트 생성 후 기록한다.
+
+## 현재 구현 상태 갱신 (2026-10-20)
+이 절은 위 초기 조사 시점의 설정 표와 미구현 차이 표를 갱신한다.
+- build.gradle에 data-jpa·flyway starter와 PostgreSQL 드라이버·Flyway PostgreSQL 모듈이 추가되어 있다. Java 17·Boot 4.0.8·Wrapper 9.8.1은 유지한다.
+- application.properties는 localhost:5432/spendly, 사용자 spendly, 환경변수 SPENDLY_DB_PASSWORD로 연결한다. Hibernate ddl-auto=validate, open-in-view=false, Flyway 활성화 상태다.
+- compose.yaml은 PostgreSQL 16, 127.0.0.1:5432, 영속 볼륨·헬스체크를 구성한다. HTTPS·배포는 없다.
+- 사용자 제공 로그로 PostgreSQL 16.14 연결, JPA·Flyway 초기화, 컨텍스트 테스트 통과와 8080 서버 기동을 확인했다(V1 추가 전).
+- 승인된 users 물리 설계로 V1__create_users.sql을 작성했다. 사용자 조회 결과로 V1 적용 성공과 실제 테이블 구조를 확인했다. V1 추가 후 기존 컨텍스트 테스트 통과는 로컬 XML(2026-10-20 17:38, 1건·실패/오류 0)로, 중복 적용 없는 정상 서버 재시작은 사용자 제공 17:39 로그로 확인했다. 엔티티·Repository·인증·거래 API·프런트엔드는 없다.
+- 테스트와 실행에는 동작 중인 DB와 SPENDLY_DB_PASSWORD 환경변수가 필요하다. 실행 결과와 차단 사항은 ROADMAP에서 관리한다.

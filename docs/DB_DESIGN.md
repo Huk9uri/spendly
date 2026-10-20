@@ -26,3 +26,15 @@ users는 categories·transactions·budgets·subscriptions 각각과 1:N이다. c
 PostgreSQL·JPA·Flyway는 목표 기술이다. UUID 생성 방식, 문자열 길이, 각 필드 null 허용 여부, 시각 컬럼 타입, 인덱스, FK 삭제 정책, 보관 카테고리의 재선택·이름 재사용, 구독 카테고리의 유형·보관 정책, 구독 금액 제약 및 start_date와 월말 보정의 경계 처리는 원본에 상세히 정해져 있지 않다. 구현 전 확인하고 기준 문서와 함께 갱신한다. 추가 제약을 확정된 요구사항처럼 도입하지 않는다.
 
 연결 설정·마이그레이션·백업 복구 검증은 예정이며 [로드맵](ROADMAP.md)에서 관리한다.
+
+## users 물리 설계 갱신 (2026-10-20)
+첫 마이그레이션 구현을 위한 사용자 승인으로 PROJECT_SPEC과 함께 확정했다. 이 절은 위의 초기 미구현 상태와 미확정 항목 중 users에 해당하는 부분을 갱신한다.
+
+| 컬럼 | 정의 |
+| --- | --- |
+| id | UUID PRIMARY KEY, 애플리케이션 생성, DB 기본값 없음 |
+| email | VARCHAR(254) NOT NULL, UNIQUE 제약 uk_users_email |
+| password_hash | VARCHAR(255) NOT NULL |
+| created_at | TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP |
+
+SQL: [V1__create_users.sql](../backend/src/main/resources/db/migration/V1__create_users.sql). 이메일 공백 제거·소문자 통일은 향후 애플리케이션에서 수행한다. DB UNIQUE 자체는 이메일 대소문자를 정규화하지 않는다. 연결 성공과 V1 적용 성공(version=1, description=create users, success=t)은 사용자 로그로 확인했다. 실제 users 구조도 승인 설계와 일치한다. V1 추가 후 기존 컨텍스트 테스트 통과는 로컬 XML(2026-10-20 17:38, 1건·실패/오류 0)로, 중복 적용 없는 정상 서버 재시작은 사용자 제공 17:39 로그로 확인했다. 엔티티와 나머지 테이블은 없다. 다른 테이블의 물리 설계와 백업 복구 검증은 여전히 미확정·예정이다.

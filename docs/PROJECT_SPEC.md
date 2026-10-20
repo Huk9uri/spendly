@@ -84,3 +84,12 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - 커밋 메시지는 접두어(`feat`, `fix`, `refactor`, `test`, `docs`, `chore` 등)만 영어로 작성하고 설명과 본문은 한국어로 작성한다. 예: `feat: 거래 등록 API 구현`.
 - 기존 파일을 무단 덮어쓰지 않고, 민감정보를 커밋하지 않는다.
 - 이 문서의 설계는 초기안이다. 모호한 결정은 구현 전에 질문하거나 선택지를 제시하고, 확정되면 docs에 기록한다.
+
+## users 설계 확정 및 구현 상태 갱신 (2026-10-20)
+사용자가 첫 Flyway 마이그레이션을 위해 아래 물리 설계를 승인했다. 이 절은 위 초기 상태 기록보다 최신이며, 다른 테이블 설계는 변경하지 않는다.
+- id: UUID PRIMARY KEY, 애플리케이션 생성, DB 기본값 없음.
+- email: VARCHAR(254) NOT NULL UNIQUE. 애플리케이션에서 앞뒤 공백 제거·소문자 통일 후 저장.
+- password_hash: VARCHAR(255) NOT NULL.
+- created_at: TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP.
+- 사용자 제공 로그에서 PostgreSQL 16.14 연결, JPA·Flyway 초기화, 기존 테스트 통과 및 Java 17.0.12·Spring Boot 4.0.8 서버 기동을 확인했다(V1 추가 전).
+- users V1 SQL의 실제 적용과 테이블 구조·이메일 UNIQUE 제약을 사용자 조회 결과로 확인했다. V1 추가 후 테스트 XML(1건·실패/오류 0)과 사용자 서버 재시작 로그(버전 1·추가 적용 없음·정상 기동)로 검증했으며 UUID 생성·이메일 정규화·인증 API 코드는 미구현이다.
