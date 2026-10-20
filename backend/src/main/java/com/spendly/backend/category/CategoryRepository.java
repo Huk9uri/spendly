@@ -5,6 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import com.spendly.backend.domain.TransactionType;
 import org.springframework.data.repository.Repository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 public interface CategoryRepository extends Repository<Category, UUID> {
 
@@ -13,6 +15,9 @@ public interface CategoryRepository extends Repository<Category, UUID> {
     <S extends Category> S saveAndFlush(S category);
 
     Optional<Category> findByIdAndUserId(UUID id, UUID userId);
+
+    @Lock(LockModeType.PESSIMISTIC_READ)
+    Optional<Category> findForTransactionCreationByIdAndUserId(UUID id, UUID userId);
 
     List<Category> findAllByUserId(UUID userId);
 
