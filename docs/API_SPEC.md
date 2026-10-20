@@ -92,3 +92,6 @@ PROJECT_SPEC의 사용자 승인에 따라 이름은 최대 50자, 앞뒤 공백
 PROJECT_SPEC의 V3 설계에 따라 생성 시 type·amount·categoryId·occurredOn·description이 필요하다. description은 빈 내용 금지·최대 100자다. memo는 선택·최대 1000자이며 미입력 시 빈 문자열로 저장한다. 명시적 null과 PATCH 누락/null 처리 계약은 여전히 미확정이다.
 amount는 1~999999999999999의 정수 원화로 BigDecimal 검증 후 저장한다. DB 반올림에 맡기지 않는다. user_id는 인증 사용자로 결정하며 카테고리 소유자·유형이 일치해야 한다. 보관 카테고리는 새 거래·카테고리 변경 시 선택을 거부하고, 기존 연결을 유지하는 금액·메모 수정은 허용한다. 이전 신규 선택 미확정 기록을 갱신하며 복원은 미확정으로 남긴다.
 version은 0에서 시작하며 이후 JPA 낙관적 잠금으로 관리한다. 기존 409 충돌 요구사항은 유지하고 PATCH version 전달 계약은 추후 확정한다. 이번 변경은 DB SQL이며 API 입력 검증·인증·충돌 처리는 미구현이다.
+
+## JPA 매핑 구현 범위 (2026-10-20)
+User·Category·Transaction 엔티티와 @Version 매핑을 추가했으나 엔드포인트는 여전히 없다. JPA OptimisticLockException을 409 응답으로 변환하는 처리, API version 전달 계약, 인증·입력 검증·정규화·보관 정책은 미구현·미확정 상태를 기존 구분대로 유지한다. 엔티티는 API DTO가 아니며 passwordHash 등을 응답에 직접 노출하지 않는다.

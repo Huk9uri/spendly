@@ -129,3 +129,12 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - updated_at 갱신과 version 증가는 향후 JPA에서 처리하며 DB 자동 갱신 트리거는 두지 않는다. V3만으로 낙관적 잠금·409 응답이 구현되지는 않는다.
 - 보관 카테고리는 신규 거래 생성·카테고리 변경 시 선택을 금지한다. 이미 연결된 보관 카테고리를 유지하는 금액·메모 수정은 허용한다. 이 정책은 향후 애플리케이션에서 구현한다. 카테고리 복원 정책은 미확정이다.
 - 소유권 검증·소수 입력 검증·보관 정책·엔티티·API·충돌 처리는 미구현이며, 이번 범위는 V3 SQL과 DB 제약조건 검증 SQL이다.
+
+## JPA 엔티티 매핑 (2026-10-20)
+사용자 승인으로 V1~V3 물리 설계를 Java 엔티티에 연결한다. 요구사항과 스키마는 유지하며 구현 방식을 다음과 같이 기록한다.
+- User, Category, Transaction을 각각 users, categories, transactions에 매핑한다. UUID는 JPA GenerationType.UUID로 애플리케이션 프로세스에서 생성한다.
+- 소유자·카테고리 참조는 UUID 필드로 매핑하며 JPA 객체 연관관계·cascade는 도입하지 않는다. DB의 기존 FK·복합 FK는 그대로 적용된다.
+- TransactionType enum은 INCOME·EXPENSE를 문자열로 저장한다. 금액은 BigDecimal(precision=15, scale=0), 발생일은 LocalDate, 생성·수정 시각은 Instant다.
+- JPA PrePersist로 생성 시각을, 거래 PreUpdate로 수정 시각을 설정한다. DB 시각 기본값은 SQL 직접 입력용으로 유지한다. 거래 version에 @Version을 매핑해 ORM 수정 충돌을 감지한다.
+- 이번 엔티티는 저장 매핑 범위다. 생성자에 전달되는 이메일·카테고리명·금액·메모 등의 API 정규화와 입력 검증, 비밀번호 해시 생성, 인증 소유권·보관 정책 검사는 향후 서비스에서 구현해야 한다. 엔티티를 API 응답으로 직접 노출하지 않는다.
+- API 409 변환은 아직 미구현이며 @Version 테스트와 API 충돌 응답 검증은 구분한다. 실행 검증 상태는 ROADMAP을 따른다.

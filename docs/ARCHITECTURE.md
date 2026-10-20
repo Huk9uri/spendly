@@ -67,3 +67,8 @@
 ## transactions V3 갱신 (2026-10-20)
 승인된 PROJECT_SPEC 설계에 따라 V3 SQL과 verify_transactions.sql을 작성했다. V3는 categories 복합 UNIQUE 추가와 transactions 테이블·복합 FK·인덱스를 정의하며 V1/V2는 유지한다. 다른 사용자의 카테고리·유형 불일치·참조 카테고리 삭제/키 변경을 DB에서 차단한다. 금액 정수 입력 검증, 보관 카테고리 신규 선택 제한, updated_at·version 갱신, 낙관적 잠금·409와 인증 소유권 검증은 향후 API·JPA 책임이며 미구현이다.
 Codex 환경에 SPENDLY_DB_PASSWORD가 없고 Docker API 접근이 permission denied로 차단되어 DB 실행 검증은 수행하지 못했다. 이후 로컬 19:47 테스트 XML(1건·실패/오류 0·V3 적용), 사용자 이력 조회와 검증 SQL 성공 NOTICE·ROLLBACK, 19:48 서버 로그(버전 3·추가 적용 없음·8080 기동)로 V3 검증 완료를 확인했다.
+
+## JPA 매핑 구현 (2026-10-20)
+User·Category·Transaction과 공통 TransactionType enum을 추가했다. UUID는 GenerationType.UUID로 생성하고, userId·categoryId는 UUID 값으로 매핑한다. 객체 연관관계와 cascade 없이 기존 DB FK를 유지한다. 금액은 BigDecimal precision=15/scale=0, 발생일은 LocalDate, 시각은 Instant다. PrePersist/PreUpdate로 시각을 설정하고 거래 version은 @Version으로 관리한다. V1~V3·의존성·애플리케이션 설정은 변경하지 않았다.
+EntityMappingTests는 실제 PostgreSQL을 사용하는 @SpringBootTest·@Transactional 테스트 3개다. 최대 금액·날짜·enum·UUID·시각의 저장/재조회, 수정 시각·버전 증가, stale version merge 거부를 검사한다. 각 테스트 fixture는 트랜잭션 롤백으로 제거한다. Flyway 스키마 이력 자체는 테스트 fixture와 별도로 유지된다. 업무 수정 메서드는 추가하지 않았으며 테스트에서만 ReflectionTestUtils로 필드를 바꿔 dirty checking을 유발한다.
+Gradle compileJava/compileTestJava는 캐시 접근 권한을 받아 통과했다. Codex 프로세스에 DB 비밀번호 환경변수가 없어 직접 DB 테스트를 실행하지 않았다. 이후 사용자 20:05 실행 결과와 로컬 XML로 총 4건(기존 1+신규 3)·실패/오류/건너뜀 0, 사용자 20:10 로그로 ddl-auto=validate 상태의 정상 기동을 확인했다. 입력 검증·소유권·보관 정책·Repository·API·409 변환은 미구현이다.

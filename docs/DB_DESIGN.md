@@ -66,3 +66,7 @@ SQL: [V1__create_users.sql](../backend/src/main/resources/db/migration/V1__creat
 
 ## transactions V3 검증 결과 (2026-10-20)
 로컬 19:47 컨텍스트 테스트 XML(1건·실패/오류 0·V3 최초 적용), 사용자 Flyway 이력(version=3, success=t)과 verify_transactions.sql 성공 NOTICE·ROLLBACK으로 DB 적용·제약조건 검증을 확인했다. 사용자 19:48 서버 로그에서 현재 버전 3·추가 적용 없는 정상 기동을 확인했다. 애플리케이션의 입력·소유권·보관 정책과 낙관적 잠금은 여전히 미구현이다.
+
+## JPA 엔티티 매핑 (2026-10-20)
+users→User, categories→Category, transactions→Transaction을 매핑했다. 생성 시 UUID는 JPA가 애플리케이션에서 생성한다. 사용자·카테고리 참조는 UUID 필드이며 무결성은 V1~V3 FK를 유지한다. TransactionType은 STRING, 금액은 BigDecimal(15,0), DATE는 LocalDate, TIMESTAMPTZ는 Instant다. 생성 시각은 PrePersist, 거래 수정 시각은 PreUpdate, 거래 version은 @Version으로 관리한다.
+엔티티·테스트 소스 컴파일은 통과했고 사용자 20:05 실행과 로컬 XML로 총 4건·실패/오류/건너뜀 0, 사용자 20:10 서버 로그로 ddl-auto=validate와 정상 기동을 확인했다. 저장·수정·버전 충돌 테스트가 통과했다. DB 스키마는 수정하지 않았다. 입력 소수 금액 검증·소유권·보관 카테고리 정책은 엔티티 생성자에서 구현하지 않았으며 향후 서비스 책임이다.
