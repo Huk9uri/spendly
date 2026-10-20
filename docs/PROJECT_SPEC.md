@@ -105,3 +105,27 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - UNIQUE(user_id,type,name)은 보관 상태와 무관하게 적용한다. 보관한 이름도 같은 사용자·유형에서 중복 생성할 수 없다.
 - DELETE API는 보관 처리한다. 보관 카테고리의 신규 거래 선택 가능 여부·복원 정책은 미확정으로 유지한다.
 - V2 SQL 작성과 API 구현을 구분한다. 사용자 소유권 검증·이름 정규화·UUID 생성·카테고리 API는 아직 미구현이다.
+
+## transactions 물리 설계 확정 (2026-10-20)
+사용자가 V3 구현을 위해 승인한 설계다. 금액·필수값·문자열 길이·카테고리 무결성·인덱스를 구체화하며, 아래 보관 정책은 이전의 신규 거래 선택 미확정 기록을 갱신한다.
+
+| 컬럼 | 정의 |
+| --- | --- |
+| id | UUID PRIMARY KEY, 애플리케이션 생성, DB 기본값 없음 |
+| user_id | UUID NOT NULL, users.id FK, 삭제·키 변경 RESTRICT |
+| category_id | UUID NOT NULL, 카테고리 소유자·유형과 함께 복합 FK |
+| type | VARCHAR(7) NOT NULL, INCOME·EXPENSE CHECK |
+| amount | NUMERIC(15,0) NOT NULL, 1~999999999999999 CHECK |
+| occurred_on | DATE NOT NULL, 기본값 없음, 사용자 로컬 날짜(초기 Asia/Seoul) |
+| description | VARCHAR(100) NOT NULL, btrim 기준 빈 설명 CHECK |
+| memo | VARCHAR(1000) NOT NULL DEFAULT '', 선택 입력은 빈 문자열로 저장 |
+| created_at | TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP |
+| updated_at | TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP |
+| version | BIGINT NOT NULL DEFAULT 0, 음수 금지 CHECK |
+
+- V3에서 categories에 UNIQUE(id,user_id,type)을 추가하고 transactions(category_id,user_id,type)이 참조한다. 거래가 참조하는 카테고리의 물리 삭제·소유자·유형 변경은 RESTRICT로 차단한다. 이름 변경·보관 처리는 허용한다. V1/V2는 수정하지 않는다.
+- 인덱스: (user_id,occurred_on DESC,id DESC), (category_id,user_id,type).
+- 금액은 서버 BigDecimal로 검증·계산한다. NUMERIC(15,0)은 소수 입력을 반올림할 수 있으므로 API에서 저장 전에 소수·범위 밖 금액을 거부한다. DB 범위 CHECK는 NaN도 거부한다. 클라이언트는 Number 안전 정수와 컬럼 범위를 모두 확인한다.
+- updated_at 갱신과 version 증가는 향후 JPA에서 처리하며 DB 자동 갱신 트리거는 두지 않는다. V3만으로 낙관적 잠금·409 응답이 구현되지는 않는다.
+- 보관 카테고리는 신규 거래 생성·카테고리 변경 시 선택을 금지한다. 이미 연결된 보관 카테고리를 유지하는 금액·메모 수정은 허용한다. 이 정책은 향후 애플리케이션에서 구현한다. 카테고리 복원 정책은 미확정이다.
+- 소유권 검증·소수 입력 검증·보관 정책·엔티티·API·충돌 처리는 미구현이며, 이번 범위는 V3 SQL과 DB 제약조건 검증 SQL이다.

@@ -1,6 +1,6 @@
 # Spendly DB 설계
 
-기준일: 2026-10-20. 기준: [PROJECT_SPEC](PROJECT_SPEC.md)의 DB 논리 모델과 도메인 규칙. users V1 적용을 검증했으며 categories V2 적용과 컨텍스트 테스트·서버 재시작을 확인했다(제약조건 SQL 검증 대기). 엔티티와 나머지 테이블은 미구현이다.
+기준일: 2026-10-20. 기준: [PROJECT_SPEC](PROJECT_SPEC.md)의 DB 논리 모델과 도메인 규칙. users V1 적용을 검증했으며 categories V2 적용과 컨텍스트 테스트·서버 재시작을 확인했다(사용자 psql 결과로 제약조건 SQL 통과·ROLLBACK 확인). 엔티티와 나머지 테이블은 미구현이다.
 
 ## 논리 모델
 | 테이블 | 필드와 제약 |
@@ -53,3 +53,16 @@ UNIQUE(user_id,type,name)은 보관 여부와 관계없이 적용하며 이름�
 | created_at | TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP |
 
 SQL: [V1__create_users.sql](../backend/src/main/resources/db/migration/V1__create_users.sql). 이메일 공백 제거·소문자 통일은 향후 애플리케이션에서 수행한다. DB UNIQUE 자체는 이메일 대소문자를 정규화하지 않는다. 연결 성공과 V1 적용 성공(version=1, description=create users, success=t)은 사용자 로그로 확인했다. 실제 users 구조도 승인 설계와 일치한다. V1 추가 후 기존 컨텍스트 테스트 통과는 로컬 XML(2026-10-20 17:38, 1건·실패/오류 0)로, 중복 적용 없는 정상 서버 재시작은 사용자 제공 17:39 로그로 확인했다. 엔티티와 나머지 테이블은 없다. 다른 테이블의 물리 설계와 백업 복구 검증은 여전히 미확정·예정이다.
+
+## transactions V3 설계 (2026-10-20 사용자 승인)
+거래 테이블 구현을 위해 PROJECT_SPEC과 함께 확정했다. 필드 정의는 PROJECT_SPEC의 transactions 물리 설계 표를 기준으로 한다.
+- [V3__create_transactions.sql](../backend/src/main/resources/db/migration/V3__create_transactions.sql): 필수 컬럼, 금액·유형·빈 설명·버전 CHECK, 사용자 FK, 카테고리 복합 FK, 조회 인덱스 2개를 정의한다.
+- categories에 UNIQUE(id,user_id,type)을 추가하고 transactions(category_id,user_id,type)이 참조한다. NULL을 허용하지 않아 복합 FK 검사를 우회하지 못한다. 참조 중인 카테고리의 삭제·소유자·유형 변경은 RESTRICT이며, 이름 변경·보관은 허용한다. V1/V2는 보존한다.
+- 금액은 NUMERIC(15,0), 1~999999999999999 CHECK로 NaN도 차단한다. 소수는 DB 형변환 중 반올림될 수 있으므로 입력 단계에서 BigDecimal로 정수·범위를 검증한다.
+- description은 필수 100자, btrim 기준 빈 설명 금지다. memo는 최대 1000자, 미입력은 빈 문자열이다. 날짜 기본값은 없으며 사용자가 전달한다.
+- version은 BIGINT 기본 0·음수 금지다. updated_at은 현재 시각 기본값만 제공한다. 실제 갱신·버전 증가와 충돌 감지는 향후 JPA에서 수행한다.
+- 보관 카테고리 신규 선택 금지·기존 연결 유지 수정 허용은 애플리케이션 정책으로 확정했으며, DB FK가 이 정책이나 인증 소유권을 대신하지 않는다. 복원 정책은 미확정이다.
+- [verify_transactions.sql](../backend/src/test/resources/db/verify_transactions.sql)은 기본값·경계값·잘못된 금액·필수값·문자열 길이·유형·버전·소유자/유형 불일치·참조 삭제/변경 차단·보관 후 기존 연결 유지를 검사하고 테스트 데이터를 롤백한다. psql로 별도 실행하며 Gradle이 자동 실행하지 않는다. 실행 결과는 ROADMAP에서 관리한다.
+
+## transactions V3 검증 결과 (2026-10-20)
+로컬 19:47 컨텍스트 테스트 XML(1건·실패/오류 0·V3 최초 적용), 사용자 Flyway 이력(version=3, success=t)과 verify_transactions.sql 성공 NOTICE·ROLLBACK으로 DB 적용·제약조건 검증을 확인했다. 사용자 19:48 서버 로그에서 현재 버전 3·추가 적용 없는 정상 기동을 확인했다. 애플리케이션의 입력·소유권·보관 정책과 낙관적 잠금은 여전히 미구현이다.

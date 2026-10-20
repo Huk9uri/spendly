@@ -62,4 +62,8 @@
 - 테스트와 실행에는 동작 중인 DB와 SPENDLY_DB_PASSWORD 환경변수가 필요하다. 실행 결과와 차단 사항은 ROADMAP에서 관리한다.
 
 ## categories V2 갱신 (2026-10-20)
-사용자 승인으로 PROJECT_SPEC·DB 설계의 카테고리 물리 설계를 구체화하고 `V2__create_categories.sql`을 작성했다. 사용자 FK(RESTRICT), 이름·유형·보관 여부·시각의 필수값과 기본값, 유형·빈 이름 CHECK, 사용자·유형·이름 UNIQUE를 정의한다. V1은 수정하지 않았다. 로컬 19:12 테스트 XML(1건·실패/오류 0)로 V2 적용과 컨텍스트 테스트 통과를, 사용자 19:13 서버 로그로 버전 2·추가 적용 없는 정상 재시작을 확인했다. 별도 제약조건 SQL 실행 검증은 대기다. 애플리케이션의 이름 정규화·소유권 검증·UUID 생성·엔티티·API는 아직 없다.
+사용자 승인으로 PROJECT_SPEC·DB 설계의 카테고리 물리 설계를 구체화하고 `V2__create_categories.sql`을 작성했다. 사용자 FK(RESTRICT), 이름·유형·보관 여부·시각의 필수값과 기본값, 유형·빈 이름 CHECK, 사용자·유형·이름 UNIQUE를 정의한다. V1은 수정하지 않았다. 로컬 19:12 테스트 XML(1건·실패/오류 0)로 V2 적용과 컨텍스트 테스트 통과를, 사용자 19:13 서버 로그로 버전 2·추가 적용 없는 정상 재시작을 확인했다. 사용자 제공 psql 결과에서 제약조건 검증 성공 NOTICE와 ROLLBACK을 확인했다. 애플리케이션의 이름 정규화·소유권 검증·UUID 생성·엔티티·API는 아직 없다.
+
+## transactions V3 갱신 (2026-10-20)
+승인된 PROJECT_SPEC 설계에 따라 V3 SQL과 verify_transactions.sql을 작성했다. V3는 categories 복합 UNIQUE 추가와 transactions 테이블·복합 FK·인덱스를 정의하며 V1/V2는 유지한다. 다른 사용자의 카테고리·유형 불일치·참조 카테고리 삭제/키 변경을 DB에서 차단한다. 금액 정수 입력 검증, 보관 카테고리 신규 선택 제한, updated_at·version 갱신, 낙관적 잠금·409와 인증 소유권 검증은 향후 API·JPA 책임이며 미구현이다.
+Codex 환경에 SPENDLY_DB_PASSWORD가 없고 Docker API 접근이 permission denied로 차단되어 DB 실행 검증은 수행하지 못했다. 이후 로컬 19:47 테스트 XML(1건·실패/오류 0·V3 적용), 사용자 이력 조회와 검증 SQL 성공 NOTICE·ROLLBACK, 19:48 서버 로그(버전 3·추가 적용 없음·8080 기동)로 V3 검증 완료를 확인했다.
