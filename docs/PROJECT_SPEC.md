@@ -138,3 +138,10 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - JPA PrePersist로 생성 시각을, 거래 PreUpdate로 수정 시각을 설정한다. DB 시각 기본값은 SQL 직접 입력용으로 유지한다. 거래 version에 @Version을 매핑해 ORM 수정 충돌을 감지한다.
 - 이번 엔티티는 저장 매핑 범위다. 생성자에 전달되는 이메일·카테고리명·금액·메모 등의 API 정규화와 입력 검증, 비밀번호 해시 생성, 인증 소유권·보관 정책 검사는 향후 서비스에서 구현해야 한다. 엔티티를 API 응답으로 직접 노출하지 않는다.
 - API 409 변환은 아직 미구현이며 @Version 테스트와 API 충돌 응답 검증은 구분한다. 실행 검증 상태는 ROADMAP을 따른다.
+
+## 카테고리·거래 Repository 구현 (2026-10-20)
+사용자 승인으로 기존 사용자 범위 조회 요구사항을 CategoryRepository·TransactionRepository에 구현했다. 도메인 요구사항과 스키마 변경은 없다.
+- Spring Data Repository 인터페이스에서 save, findByIdAndUserId, findAllByUserId만 노출한다. 사용자 조건 없는 findById/findAll·삭제 메서드는 추가하지 않는다.
+- 조회의 userId는 향후 인증 정보에서 얻어 서비스가 전달한다. Repository가 인증을 수행하지 않으며 save 자체도 소유권·카테고리·금액 규칙을 검증하지 않는다.
+- 목록은 내부 사용자 범위 기본 조회다. API 정렬·페이지·필터 계약을 확정하거나 대체하지 않는다. 보관 카테고리도 포함하며 신규 선택 제한은 별도 서비스 책임이다.
+- 두 사용자의 동일 이름 카테고리·거래로 저장/재조회 및 상세·목록 격리 통합 테스트 4개를 작성했다. 실행 결과는 ROADMAP을 따른다. 인증·서비스·API는 아직 없다.

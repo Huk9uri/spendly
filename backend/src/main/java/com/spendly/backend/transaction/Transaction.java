@@ -22,7 +22,7 @@ import java.util.UUID;
 public class Transaction {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.UUID) // 어플리케이션에서 UUID를 생성하도록 지정, DB에서 생성하지 않는다.
     private UUID id;
 
     @Column(name = "user_id", nullable = false)

@@ -17,12 +17,13 @@
 | categories V2 마이그레이션·제약조건 검증 | 2026-10-20 | V2 SQL·검증 SQL 작성, 19:12 로컬 테스트 XML(1건·실패/오류 0·V2 적용), 사용자 19:13 재기동 로그(버전 2·추가 적용 없음), psql 검증 성공 NOTICE와 ROLLBACK 확인 |
 | transactions V3 마이그레이션·제약조건 검증 | 2026-10-20 | 19:47 로컬 테스트 XML(1건·실패/오류 0·V3 적용), 사용자 Flyway 이력(version=3, success=t), 제약조건 SQL 성공 NOTICE·ROLLBACK, 19:48 서버 재시작(버전 3·추가 적용 없음·8080 기동) 확인 |
 | 사용자·카테고리·거래 JPA 엔티티 매핑·검증 | 2026-10-20 | User·Category·Transaction·TransactionType, EntityMappingTests 3개, 20:05 테스트 XML 총 4건·실패/오류/건너뜀 0, 사용자 20:10 서버 로그(버전 3·스키마 검증 오류 없이 8080 기동) 확인 |
+| 카테고리·거래 Repository 구현·조회 격리 검증 | 2026-10-20 | Repository 2개·RepositoryTests 4개, 사용자 BUILD SUCCESSFUL·20:58~20:59 로컬 XML 총 8건·실패/오류/건너뜀 0, 21:01 서버 로그(Repository 2개·버전 3·8080 기동) 확인 |
 | 기준 요구사항 문서 기반 개발 지침·파생 문서 정리 | 2026-10-20 | PROJECT_SPEC 전체 대조, AGENTS 및 5개 문서 갱신, 원문 보존 |
 
 Windows·IDE 준비, Java 17.0.12 설치, GitHub 연결은 원본에 기록된 사용자 확인 사항이다. 이번 작업에서 별도 실행 검증하지 않았다.
 
 ## 진행 중
-서비스 개발 작업 없음. 사용자·카테고리·거래 JPA 매핑 검증 완료.
+서비스 개발 작업 없음. 카테고리·거래 Repository 조회 격리 검증 완료.
 
 ## 예정 — 원본의 주차별 순서
 | 주차 | 작업 | 완료 확인 기준 |
@@ -63,3 +64,8 @@ Windows·IDE 준비, Java 17.0.12 설치, GitHub 연결은 원본에 기록된 �
 - Codex에서 compileJava/compileTestJava 통과. 사용자 실행 결과 BUILD SUCCESSFUL 및 로컬 20:05 테스트 XML로 기존 1건+신규 3건, 실패·오류·건너뜀 0을 확인했다. 저장·재조회 시 금액·날짜 보존, dirty update 시 시각·버전 갱신, stale version merge 거부를 검증했다.
 - 사용자 20:10 서버 로그로 Flyway 버전 3·추가 적용 없음과 ddl-auto=validate 상태에서 엔티티 매핑 오류 없는 8080 기동을 확인했다. DB 테스트는 사용자가 실행했으며 Codex 직접 실행과 구분한다.
 - API·입력 검증·정규화·인증·보관 정책·409 변환은 미구현이다. git diff --check 통과. 커밋·푸시는 수행하지 않았다.
+
+## Repository 완료 근거 (2026-10-20)
+- 사용자 실행 결과 BUILD SUCCESSFUL과 로컬 XML로 기존 4개+RepositoryTests 4개, 총 8건·실패/오류/건너뜀 0을 확인했다. 테스트는 20:58~20:59(Asia/Seoul)에 실행됐으며 본인 조회·타인 조회 차단·사용자별 목록 격리·없는 ID/사용자 결과를 검증했다.
+- 사용자 제공 21:01 기동 로그에서 Found 2 JPA repository interfaces, Flyway 버전 3·추가 적용 없음, 스키마 검증 오류 없는 8080 정상 기동을 확인했다. DB 테스트는 사용자가 실행했으며 Codex 직접 실행과 구분한다.
+- 스키마·의존성·설정과 기존 staged Transaction.java 주석 변경은 유지했다. 인증·서비스·API·409 응답 변환은 미구현이다. git diff --check 통과. 커밋·푸시는 수행하지 않았다.

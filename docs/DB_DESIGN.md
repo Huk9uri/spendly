@@ -70,3 +70,6 @@ SQL: [V1__create_users.sql](../backend/src/main/resources/db/migration/V1__creat
 ## JPA 엔티티 매핑 (2026-10-20)
 users→User, categories→Category, transactions→Transaction을 매핑했다. 생성 시 UUID는 JPA가 애플리케이션에서 생성한다. 사용자·카테고리 참조는 UUID 필드이며 무결성은 V1~V3 FK를 유지한다. TransactionType은 STRING, 금액은 BigDecimal(15,0), DATE는 LocalDate, TIMESTAMPTZ는 Instant다. 생성 시각은 PrePersist, 거래 수정 시각은 PreUpdate, 거래 version은 @Version으로 관리한다.
 엔티티·테스트 소스 컴파일은 통과했고 사용자 20:05 실행과 로컬 XML로 총 4건·실패/오류/건너뜀 0, 사용자 20:10 서버 로그로 ddl-auto=validate와 정상 기동을 확인했다. 저장·수정·버전 충돌 테스트가 통과했다. DB 스키마는 수정하지 않았다. 입력 소수 금액 검증·소유권·보관 카테고리 정책은 엔티티 생성자에서 구현하지 않았으며 향후 서비스 책임이다.
+
+## Repository 구현 범위 (2026-10-20)
+CategoryRepository·TransactionRepository에서 사용자 ID와 리소스 ID로 상세 조회하고, 사용자 ID로 목록 조회하도록 구현했다. 기존 DB 스키마·제약조건·엔티티는 변경하지 않았다. RepositoryTests의 DB 저장·재조회·사용자 격리 4개 테스트는 사용자 실행과 로컬 XML로 통과를 확인했다(전체 8건·실패/오류/건너뜀 0). 사용자 21:01 서버 로그에서 Repository 2개·정상 기동도 확인했으며 근거는 ROADMAP에 기록했다. 목록은 정렬·페이지 계약이 없는 내부 기본 조회이고 보관 카테고리를 포함한다.

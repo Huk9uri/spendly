@@ -95,3 +95,6 @@ version은 0에서 시작하며 이후 JPA 낙관적 잠금으로 관리한다. 
 
 ## JPA 매핑 구현 범위 (2026-10-20)
 User·Category·Transaction 엔티티와 @Version 매핑을 추가했으나 엔드포인트는 여전히 없다. JPA OptimisticLockException을 409 응답으로 변환하는 처리, API version 전달 계약, 인증·입력 검증·정규화·보관 정책은 미구현·미확정 상태를 기존 구분대로 유지한다. 엔티티는 API DTO가 아니며 passwordHash 등을 응답에 직접 노출하지 않는다.
+
+## Repository 구현 범위 (2026-10-20)
+카테고리·거래 Repository에 사용자 범위 상세·목록 조회와 저장을 추가했다. Controller·인증·서비스·API 응답은 추가하지 않았다. 내부 findAllByUserId는 보관 카테고리도 포함하는 기본 목록이며 API의 검색·정렬·페이지 계약을 대체하지 않는다. userId는 향후 서비스가 인증 정보에서 얻어 전달해야 한다. 타인 리소스에 대한 HTTP 403/404 및 오류 상세 계약은 미확정 상태를 유지한다.
