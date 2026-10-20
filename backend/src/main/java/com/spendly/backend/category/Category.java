@@ -12,9 +12,11 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
+import org.hibernate.annotations.DynamicUpdate;
 
 @Entity
 @Table(name = "categories")
+@DynamicUpdate
 public class Category {
 
     @Id
@@ -50,6 +52,10 @@ public class Category {
     void initializeCreatedAt() {
         createdAt = Instant.now();
     }
+
+    public void rename(String name) { this.name = name; }
+
+    public void archive() { archived = true; }
 
     public UUID getId() { return id; }
     public UUID getUserId() { return userId; }

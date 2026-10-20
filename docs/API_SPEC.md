@@ -98,3 +98,19 @@ User·Category·Transaction 엔티티와 @Version 매핑을 추가했으나 엔�
 
 ## Repository 구현 범위 (2026-10-20)
 카테고리·거래 Repository에 사용자 범위 상세·목록 조회와 저장을 추가했다. Controller·인증·서비스·API 응답은 추가하지 않았다. 내부 findAllByUserId는 보관 카테고리도 포함하는 기본 목록이며 API의 검색·정렬·페이지 계약을 대체하지 않는다. userId는 향후 서비스가 인증 정보에서 얻어 전달해야 한다. 타인 리소스에 대한 HTTP 403/404 및 오류 상세 계약은 미확정 상태를 유지한다.
+
+## 인증 API 확정 (2026-10-20 사용자 승인)
+PROJECT_SPEC의 인증 정책 확정 절과 [AUTH_DESIGN](AUTH_DESIGN.md)이 기존 인증 세부 계약 미확정 상태를 갱신한다. 요청은 JSON email·password이며 이메일 정규화·형식·254자, 비밀번호 필수·12~128자를 검사한다. 가입 201·자동 로그인 없음, 로그인 200, me 200은 모두 id·email만 반환한다. 로그아웃은 204다. 인증된 상태의 재가입·재로그인은 409 ALREADY_AUTHENTICATED다.
+GET /api/auth/csrf를 추가했다. 응답은 token·headerName이고 회원가입·로그인·로그아웃 POST에도 X-CSRF-TOKEN이 필요하다. 로그인·로그아웃 뒤 토큰을 재조회한다. 비인증 me는 401 UNAUTHENTICATED, 로그인 실패는 동일한 401 INVALID_CREDENTIALS, 중복 이메일은 409 EMAIL_ALREADY_EXISTS, CSRF 오류는 403 CSRF_INVALID다. 400 VALIDATION_ERROR/INVALID_JSON, 415 UNSUPPORTED_MEDIA_TYPE과 429 LOGIN_RATE_LIMITED(Retry-After)를 사용한다. 공통 details는 [{field,message}]이며 입력값을 포함하지 않는다. 이 절의 인증 409 구현은 거래 버전 충돌 409 구현을 의미하지 않는다.
+로그인 제한·쿠키 정책은 PROJECT_SPEC을 따르며 사용자 ID는 세션 principal에서 제공한다. 실제 실행 방법은 [AUTH_GUIDE](AUTH_GUIDE.md)를 따른다. 거래 엔드포인트·API 페이지/검색·PATCH 계약은 이번 범위가 아니다.
+
+## 카테고리 API 확정 및 구현 (2026-10-20 사용자 승인)
+PROJECT_SPEC의 카테고리 서비스·API 계약과 [CATEGORY_API_DESIGN](CATEGORY_API_DESIGN.md)이 기존 카테고리 응답·PATCH·타인 오류 미확정 기록을 갱신한다.
+- GET /api/categories?includeArchived=false는 사용 중인 목록, true는 보관 포함. 200 DTO 배열이며 name·id 오름차순이다. 페이지/검색 계약은 추가하지 않는다.
+- POST는 name·type 필수, 201 DTO. PATCH는 name만 필수, 200 DTO. name은 문자열 strip·빈 이름 금지·최대 50자, type은 문자열 INCOME/EXPENSE다. DTO는 id·name·type·archived·createdAt이다. user_id는 세션에서 결정한다.
+- POST의 name/type 외 필드와 PATCH의 name 외 필드, 누락/null/빈 객체/잘못된 타입은 400이다. 유형은 생성 후 변경하지 않는다.
+- DELETE는 보관 처리, 반복 요청도 204다. 보관 항목 이름 수정은 허용한다. 중복은 보관 여부와 관계없이 409 CATEGORY_ALREADY_EXISTS, 없거나 타인 소유인 PATCH/DELETE는 404 CATEGORY_NOT_FOUND다.
+- 미인증 401·CSRF 403을 유지한다. UUID/includeArchived 변환 오류는 공통 400 VALIDATION_ERROR로 처리한다. [CATEGORY_API_GUIDE](CATEGORY_API_GUIDE.md)에 전체 테스트·실제 HTTP 명령을 기록했다.
+
+## 이름순 정렬 변경 근거 (2026-10-20)
+사용자 요청으로 생성순 대신 name ASC·id ASC를 적용했다. 현재 로컬 DB en_US.utf8에서 한글 가나다순을 확인했다. API 기본 목록과 includeArchived=true에 모두 적용하며 응답·필터 계약은 유지한다. 배포 DB의 collation은 별도로 검증한다.

@@ -145,3 +145,30 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 - 조회의 userId는 향후 인증 정보에서 얻어 서비스가 전달한다. Repository가 인증을 수행하지 않으며 save 자체도 소유권·카테고리·금액 규칙을 검증하지 않는다.
 - 목록은 내부 사용자 범위 기본 조회다. API 정렬·페이지·필터 계약을 확정하거나 대체하지 않는다. 보관 카테고리도 포함하며 신규 선택 제한은 별도 서비스 책임이다.
 - 두 사용자의 동일 이름 카테고리·거래로 저장/재조회 및 상세·목록 격리 통합 테스트 4개를 작성했다. 실행 결과는 ROADMAP을 따른다. 인증·서비스·API는 아직 없다.
+
+## 인증 구현 순서 변경 (2026-10-20 사용자 승인)
+원래 3주 차의 회원가입·로그인·세션·CSRF를 거래 서비스·HTTP API보다 먼저 구현한다. 이유는 사용자 범위 Repository에 실제 인증 사용자 ID를 연결하기 위해서다. 임시 고정 사용자나 클라이언트 user_id 기반 인증을 도입하지 않는다. MVP 범위는 유지한다. 인증 API·쿠키·CSRF·입력·오류·속도 제한의 구체적인 값은 AUTH_DESIGN 초안에서 제안하며 별도 사용자 확인 후 이 기준 문서에 확정 반영한다.
+
+## 인증 정책 확정 및 구현 (2026-10-20 사용자 승인)
+인증 우선 구현에 필요한 아래 정책을 승인받아 확정했다. AUTH_DESIGN 초안 확인 대기 상태를 갱신한다.
+- GET /api/auth/csrf는 비인증 상태에서도 200으로 token·headerName을 반환한다. POST /api/auth/register는 JSON email·password로 가입하고 201 id·email 반환, 자동 로그인하지 않는다. POST /api/auth/login은 200 id·email 및 서버 세션 인증을 설정한다. POST /api/auth/logout은 204·세션 무효화·쿠키 제거, 올바른 CSRF가 있으면 비인증 상태에서도 멱등 처리한다. GET /api/me는 인증 사용자 id·email만 반환한다.
+- 이메일은 strip·Locale.ROOT 소문자 정규화 후 필수·형식·최대 254자를 검증한다. 비밀번호는 필수·공백만 있는 값 금지·12~128자이며 공백/대소문자를 변환하지 않고 조합 규칙은 강제하지 않는다. PBKDF2-SHA256(Spring Security v5.8 기본 파라미터) 해시를 알고리즘 식별자와 저장한다.
+- 회원가입·로그인·로그아웃 모두 CSRF를 검사한다. 토큰은 세션에 보관하고 JSON에서 받은 토큰을 X-CSRF-TOKEN 헤더로 보낸다. 로그인·로그아웃 뒤 재조회한다. 로그인 시 세션 ID를 교체하고 SecurityContext를 세션에 명시적으로 저장한다. 세션 principal에는 해시를 남기지 않는다.
+- 세션 쿠키는 HttpOnly·SameSite=Lax, 비활성 30분 만료다. 기본 Secure=true이며 local 프로필의 로컬 HTTP에서만 false다. 쿠키 외 URL 세션 추적은 사용하지 않는다. 초기 프런트는 동일 출처 프록시를 사용하고 credential CORS 출처는 허용하지 않는다. 임의 전달 IP 헤더는 신뢰하지 않는다.
+- 공통 오류는 code·message·details 배열이다. details는 field·message만 포함하고 원문 입력·비밀번호·해시·쿠키·토큰·SQL 오류를 로그/응답에 노출하지 않는다. 400 입력/JSON, 401 미인증·동일한 계정 없음/비밀번호 불일치, 403 CSRF/접근 거부, 409 이메일 중복/인증 상태 충돌, 429 로그인 제한을 사용한다. 표준 404·405·415·500도 같은 JSON 형식으로 처리한다. 인증된 상태의 가입·로그인은 409다.
+- 로그인 제한은 직접 연결 IP별 5분 20회, IP+정규화 이메일별 5분 5회다. 입력 검증을 통과한 인증 시도를 성공/실패와 무관하게 집계하며 초과 시 429와 Retry-After를 반환한다. 단일 서버 메모리 고정 시간 창·만료 제거·최대 10000개 키, 저장소 포화 시 제한 응답을 사용한다. 재시작 시 초기화되며 다중 서버는 지원하지 않는다.
+- UserRepository·인증 DTO/서비스/Controller·보안 설정·공통 JSON 오류·속도 제한을 구현했다. 거래 API·거래 입력 검증·버전 충돌의 HTTP 409 변환과 인증 ID 연결은 아직 미구현이다. 상세 실행·배포 검증은 AUTH_GUIDE와 ROADMAP을 따른다.
+
+## 카테고리 서비스·API 계약 확정 (2026-10-20 사용자 승인)
+기존 카테고리 요구사항의 응답·조회·수정·오류 정책을 아래처럼 구체화한다. 이전 카테고리 type/PATCH/응답 계약 미확정 상태를 갱신하며 다른 리소스의 계약은 변경하지 않는다.
+- GET /api/categories: 200 DTO 배열, 없으면 []. includeArchived 기본 false, true면 보관 포함. 인증 사용자 범위에서 name 오름차순·id 오름차순으로 조회한다. 이번에는 페이지·검색을 도입하지 않는다.
+- POST /api/categories: name·type 필수, 생성 201 DTO. name은 문자열 strip 후 빈 이름 금지·최대 50자·대소문자 구분, type은 문자열 INCOME·EXPENSE만 허용한다. archived=false로 시작한다.
+- PATCH /api/categories/{id}: name만 필수로 받아 이름을 수정하고 200 DTO. 필드 누락·null·빈 객체·문자열 외 이름·type/archived/userId/user_id 등 지원하지 않는 필드는 400이다. 생성 요청도 name·type 외 필드는 거부한다. type은 생성 이후 변경할 수 없다.
+- DELETE /api/categories/{id}: 물리 삭제 없이 archived=true, 반복 보관도 204다. 보관 카테고리 이름 수정은 허용하되 복원 API는 이번 범위가 아니다. 기존 거래 연결을 유지한다.
+- DTO는 id·name·type·archived·createdAt만 포함한다. user_id는 세션 principal에서 얻으며 요청·응답 DTO에 포함하지 않는다.
+- 동일 사용자·유형·정규화 이름 중복은 보관 상태와 무관하게 409 CATEGORY_ALREADY_EXISTS. 사전 검사 및 flush 시 DB UNIQUE(uk_categories_user_type_name) 오류를 처리한다. 다른 사용자·유형의 동일 이름은 허용한다.
+- 타인 소유와 미존재 항목의 수정/보관은 동일한 404 CATEGORY_NOT_FOUND. 입력·UUID·쿼리 변환 오류는 400, 미인증은 401, CSRF 오류는 403이다. 보안 필터의 CSRF 우선 검사를 유지한다.
+- 서비스를 트랜잭션으로 묶고 Repository 쿼리에 사용자 조건을 포함한다. Category는 rename·archive 변경 메서드와 DynamicUpdate를 사용해 이름/보관 수정 시 변경된 컬럼만 갱신한다. 스키마·카테고리 version 컬럼은 추가하지 않는다. 거래 API·보관 카테고리 신규 선택 검사·거래 버전 409 변환은 이후 구현한다.
+
+## 카테고리 이름순 정렬 변경 (2026-10-20 사용자 요청)
+카테고리를 이름으로 찾기 쉽도록 생성 시각순을 name ASC·id ASC로 변경한다. 같은 이름의 수입·지출 카테고리는 UUID 오름차순으로 순서를 고정한다. 기본 목록과 보관 포함 목록 모두 동일한 기준이며 사용자 범위·보관 필터는 유지한다. 스키마·DB collation은 변경하지 않는다. 현재 로컬 DB en_US.utf8의 예시 조회에서 한글 가나다순을 확인했으며, 다른 collation의 배포 환경에서는 다시 검증한다.

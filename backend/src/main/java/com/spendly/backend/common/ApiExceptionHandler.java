@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -43,6 +44,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     ResponseEntity<ApiError> invalidJson() {
         return ResponseEntity.badRequest().body(ApiError.of("INVALID_JSON", "JSON 요청 형식이 올바르지 않습니다."));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    ResponseEntity<ApiError> invalidParameter(MethodArgumentTypeMismatchException exception) {
+        return ResponseEntity.badRequest().body(new ApiError("VALIDATION_ERROR", "요청 형식을 확인해 주세요.",
+                List.of(new ApiError.Detail(exception.getName(), "요청 형식이 올바르지 않습니다."))));
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
