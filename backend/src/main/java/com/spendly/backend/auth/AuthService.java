@@ -22,12 +22,13 @@ public class AuthService {
 
     @Transactional
     public UserResponse register(CredentialsRequest request) {
+        // 이메일 중복 검사
         if (users.existsByEmail(request.email())) { throw duplicateEmail(); }
         try {
             User user = users.saveAndFlush(new User(request.email(), passwords.encode(request.password())));
             return new UserResponse(user.getId(), user.getEmail());
         } catch (DataIntegrityViolationException exception) {
-            // Also handle concurrent registrations which pass the existence check.
+            // DB에서 발생한 오류가 이메일 중복 때문인지 확인
             for (Throwable cause = exception; cause != null; cause = cause.getCause()) {
                 if (cause instanceof ConstraintViolationException constraint
                         && "uk_users_email".equals(constraint.getConstraintName())) {

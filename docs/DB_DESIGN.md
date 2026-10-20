@@ -73,3 +73,13 @@ users→User, categories→Category, transactions→Transaction을 매핑했다.
 
 ## Repository 구현 범위 (2026-10-20)
 CategoryRepository·TransactionRepository에서 사용자 ID와 리소스 ID로 상세 조회하고, 사용자 ID로 목록 조회하도록 구현했다. 기존 DB 스키마·제약조건·엔티티는 변경하지 않았다. RepositoryTests의 DB 저장·재조회·사용자 격리 4개 테스트는 사용자 실행과 로컬 XML로 통과를 확인했다(전체 8건·실패/오류/건너뜀 0). 사용자 21:01 서버 로그에서 Repository 2개·정상 기동도 확인했으며 근거는 ROADMAP에 기록했다. 목록은 정렬·페이지 계약이 없는 내부 기본 조회이고 보관 카테고리를 포함한다.
+
+## 인증 저장·검증 구현 (2026-10-20)
+UserRepository의 이메일 조회·중복 확인·saveAndFlush를 인증 서비스에 연결했다. 기존 users UNIQUE(uk_users_email)와 flush 시 제약조건명을 확인해 동시 중복 가입도 409로 변환한다. password_hash에는 {pbkdf2@SpringSecurity_v5_8} 식별자와 PBKDF2 해시를 저장한다. 컬럼 255자와 기존 V1~V3는 유지한다. 스키마 변경·마이그레이션은 없다.
+HttpSession에는 UUID·이메일 principal을 보관하고 인증 성공 시 자격정보를 지운다. CSRF 토큰·세션·로그인 제한은 DB 테이블에 저장하지 않는다. 실제 PostgreSQL 회원가입·해시 저장·중복 확인 테스트 2개는 사용자 실행의 21:58 XML에서 통과를 확인했다. 전체 20개 테스트도 실패/오류/건너뜀 0이며 사용자 실제 HTTP 가입·로그인·me·로그아웃 후 401 흐름도 확인했다. 검증 근거는 ROADMAP을 따른다.
+
+## 카테고리 서비스·Repository 보완 (2026-10-20)
+기존 스키마·V1~V3는 유지했다. Category에 rename·archive와 DynamicUpdate를 추가하고 Repository에 사용자 범위 보관 필터·name/id 정렬·이름 중복 검사·saveAndFlush를 추가했다. 보관한 이름도 기존 UNIQUE 범위에 포함되며 이름만 수정한다. flush 오류의 uk_categories_user_type_name을 확인해 동시 중복도 409로 변환한다. 카테고리 서비스·API를 구현했고 Codex의 별도 임시 PostgreSQL 전체 32개 테스트(실패/오류/건너뜀 0)로 DB 검증을 마쳤다. 임시 서버의 실제 HTTP 흐름도 통과했고 임시 리소스를 정리했다. 상세 근거는 ROADMAP을 따른다.
+
+## 이름순 정렬 갱신 (2026-10-20)
+사용자 요청으로 기존 name ASC·id ASC 문구를 확정하고 기본/보관 포함 Repository 조회를 변경했다. DB collation이나 인덱스·V1~V3는 수정하지 않았다. 현재 로컬 en_US.utf8에서 한글 가나다순 예시를 확인했고 임시 DB에서 관련 16개 테스트를 통과했다. 배포 환경 collation에 따라 혼합 문자 순서가 달라질 수 있어 재확인한다.
