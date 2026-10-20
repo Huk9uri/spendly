@@ -114,3 +114,11 @@ PROJECT_SPEC의 카테고리 서비스·API 계약과 [CATEGORY_API_DESIGN](CATE
 
 ## 이름순 정렬 변경 근거 (2026-10-20)
 사용자 요청으로 생성순 대신 name ASC·id ASC를 적용했다. 현재 로컬 DB en_US.utf8에서 한글 가나다순을 확인했다. API 기본 목록과 includeArchived=true에 모두 적용하며 응답·필터 계약은 유지한다. 배포 DB의 collation은 별도로 검증한다.
+
+## 거래 등록·상세 API 구체화 (2026-10-21)
+[PROJECT_SPEC](PROJECT_SPEC.md)의 거래 등록·상세 절과 [TRANSACTION_API_DESIGN](TRANSACTION_API_DESIGN.md)을 따른다. 이전의 생성 메모 null 처리 미확정 기록을 갱신하며 PATCH 누락/null 계약은 아직 미확정이다.
+- POST /api/transactions: type·amount·categoryId·occurredOn·description 필수, memo 선택. 누락과 null은 모두 ''로 저장한다. 성공 201.
+- GET /api/transactions/{id}: 인증 사용자 소유 거래 상세, 성공 200. 공통 응답은 id·type·amount·categoryId·occurredOn·description·memo·version이다. version 초기값은 0이다.
+- amount는 JSON 정수 숫자(1~999999999999999)만 허용하고 문자열·소수·지수 표기를 거부한다. type은 문자열 INCOME/EXPENSE, 날짜는 실제 YYYY-MM-DD(0001~9999), UUID는 표준 형식이다. description은 strip·빈 내용 금지·100자, memo는 문자열 공백 유지·1000자다.
+- 미지원 필드·사용자/ID/version/시각 위조는 400. 미인증 401·CSRF 403. 없는/타인 거래 404 TRANSACTION_NOT_FOUND, 없는/타인 카테고리 404 CATEGORY_NOT_FOUND, 유형 불일치 400 CATEGORY_TYPE_MISMATCH, 보관 카테고리 400 CATEGORY_ARCHIVED다. 입력 오류는 기존 VALIDATION_ERROR/INVALID_JSON 공통 형식이며 실제 입력값은 반환하지 않는다.
+- 보관 이후 기존 거래 상세는 허용한다. 목록·수정·삭제·버전 충돌 HTTP 409는 이번 범위가 아니다. [실행 가이드](TRANSACTION_API_GUIDE.md)에 전체 테스트와 수동 HTTP 명령을 기록했다.

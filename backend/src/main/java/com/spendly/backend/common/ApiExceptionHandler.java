@@ -13,6 +13,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -39,6 +40,11 @@ public class ApiExceptionHandler {
                 .map(error -> new ApiError.Detail(error.getField(), "입력 형식 또는 길이가 올바르지 않습니다."))
                 .distinct().toList();
         return ResponseEntity.badRequest().body(new ApiError("VALIDATION_ERROR", "입력값을 확인해 주세요.", details));
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ApiError> invalidServiceInput() {
+        return ResponseEntity.badRequest().body(ApiError.of("VALIDATION_ERROR", "입력값을 확인해 주세요."));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)

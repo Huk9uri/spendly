@@ -98,3 +98,9 @@ CreateCategoryRequest·RenameCategoryRequest·CategoryResponse·CategoryControll
 
 ## 카테고리 이름순 정렬 검증 (2026-10-20)
 사용자 요청으로 CategoryRepository·CategoryService를 OrderByNameAscIdAsc로 변경했다. CategoryIntegrationTests는 생성 순서와 다른 한글 이름(가계·나들이·다과), 동일 이름의 수입/지출 ID 순서, 보관 포함/제외와 사용자 격리를 검증하도록 갱신했다. 임시 PostgreSQL에서 카테고리 12개·기존 Repository 4개, 총 16개 테스트를 직접 실행해 실패/오류/건너뜀 0으로 통과했다. 임시 DB는 정리했고 기존 DB·서버·collation·마이그레이션은 유지했다. 로컬 DB collation(en_US.utf8)의 읽기 전용 예시 조회에서도 가나다순을 확인했다. 보조 SHOW LC_COLLATE 진단 명령은 지원되지 않아 실패했으나 테스트는 정상 통과했으며 collation 값은 앞선 pg_database 조회 결과를 근거로 한다. 배포 환경 collation은 별도 검증한다.
+
+## 거래 등록·상세 구현 (2026-10-21)
+CreateTransactionRequest·TransactionResponse·TransactionController·TransactionService를 추가했다. JSON Map 기반 생성기에서 허용 필드와 정수/문자열 표기를 검사하고 Bean Validation으로 범위·길이·필수값을 검증한다. 메모 누락/null은 생성자에서 ''로 정규화하고 description만 strip한다. 서비스도 @Validated/@Valid로 소수 금액을 DB 반올림 전에 차단한다.
+TransactionRepository에 saveAndFlush, CategoryRepository에 사용자 범위 PESSIMISTIC_READ 조회를 추가했다. 등록 트랜잭션에서 카테고리 소유자·유형·보관 상태를 확인하고 커밋까지 행 잠금을 유지한다. 상세는 findByIdAndUserId로 조회하며 카테고리 보관 여부로 기존 거래를 숨기지 않는다. 공통 오류 처리에 서비스 Bean Validation 400을 추가했다. 스키마·버전·설정·의존성은 유지했다.
+검증: 거래 HTTP 7·서비스 3·DB 통합 5·행 잠금 1을 추가했다. 기존 32개를 포함한 48개를 별도 임시 PostgreSQL에서 직접 실행해 실패/오류/건너뜀 0을 확인했다. 잠금 테스트는 별도 연결의 FOR NO KEY UPDATE NOWAIT가 55P03으로 거부되는지 확인해 단순 FK KEY SHARE와 구분한다. 커밋 후 보관 허용·신규 등록 차단·기존 상세 유지도 검사하고 해당 fixture만 정리한다.
+bootJar와 임시 local 서버에서 실제 세션·CSRF로 등록201·상세200·메모 null/누락→빈 문자열·최대 금액 보존·version0·타인404·보관신규400·보관후상세200·미인증401을 확인했다. 임시 서버·DB는 정리했고 기존 DB·서버는 유지했다. 실제 브라우저·운영 HTTPS·프록시 검증과 거래 수정/목록/삭제·HTTP 충돌 409는 이후 범위다.

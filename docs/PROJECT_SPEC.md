@@ -172,3 +172,13 @@ GET /api/dashboard?month=YYYY-MM; GET /api/analytics/categories?month=YYYY-MM; G
 
 ## 카테고리 이름순 정렬 변경 (2026-10-20 사용자 요청)
 카테고리를 이름으로 찾기 쉽도록 생성 시각순을 name ASC·id ASC로 변경한다. 같은 이름의 수입·지출 카테고리는 UUID 오름차순으로 순서를 고정한다. 기본 목록과 보관 포함 목록 모두 동일한 기준이며 사용자 범위·보관 필터는 유지한다. 스키마·DB collation은 변경하지 않는다. 현재 로컬 DB en_US.utf8의 예시 조회에서 한글 가나다순을 확인했으며, 다른 collation의 배포 환경에서는 다시 검증한다.
+
+## 거래 등록·상세 조회 계약 및 구현 (2026-10-21)
+feat/transaction의 구현 요청을 기준으로 등록·상세 계약을 구체화하고, 사용자 지시에 따라 메모 누락과 명시적 null을 모두 빈 문자열로 정규화한다. 기존 거래 메모 null 미확정 기록을 갱신한다.
+- POST /api/transactions는 201, GET /api/transactions/{id}는 200. 응답은 기존 예시대로 id·type·amount·categoryId·occurredOn·description·memo·version이며 소유자·엔티티를 노출하지 않는다.
+- 생성 필수값은 type·amount·categoryId·occurredOn·description. description은 strip 후 빈 내용 금지·최대 100자다. memo는 누락/null이면 '', 문자열이면 공백을 유지하며 최대 1000자다.
+- type은 문자열 INCOME/EXPENSE, amount는 JSON 정수 숫자 표기이며 BigDecimal로 읽어 1~999999999999999를 검증한다. 문자열 숫자·소수 표기·지수 표기는 400이다. 내부 서비스 호출도 @Validated/@Valid와 금액 제약으로 DB 소수 반올림 전에 검증한다.
+- occurredOn은 YYYY-MM-DD의 실제 날짜(연도 0001~9999), categoryId와 상세 경로 id는 표준 UUID 형식을 요구한다. 미래 날짜를 금지하는 제약은 추가하지 않는다. 알려지지 않은 필드·클라이언트 userId/user_id/id/version/시각 지정은 400이다.
+- 없는/타인 거래는 동일 404 TRANSACTION_NOT_FOUND, 없는/타인 카테고리는 동일 404 CATEGORY_NOT_FOUND. 유형 불일치는 400 CATEGORY_TYPE_MISMATCH, 보관 카테고리 신규 선택은 400 CATEGORY_ARCHIVED다. 미인증 401·CSRF 403과 기존 필터 우선 순서를 유지한다.
+- 등록 서비스는 인증 UUID로 카테고리를 조회하고 PESSIMISTIC_READ로 해당 행을 트랜잭션 종료까지 잠가 확인 직후 보관되는 경쟁을 보호한다. 기존 DB 복합 FK는 유지한다. 등록 후 보관된 카테고리의 기존 거래 상세는 조회할 수 있다.
+- version은 0에서 시작한다. 등록·상세 Controller/DTO/Service와 필요한 Repository 메서드만 추가했으며 목록·수정·삭제·검색·페이지·수정 충돌 HTTP 409 변환은 별도 구현한다. 스키마·의존성·버전·기존 설정은 변경하지 않았다.
