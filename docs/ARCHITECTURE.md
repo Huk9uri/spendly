@@ -108,3 +108,7 @@ bootJar와 임시 local 서버에서 실제 세션·CSRF로 등록201·상세200
 
 ## 거래 목록·수정·삭제 반영 (2026-10-21)
 사용자가 설계를 승인해 구현한다. TransactionOperations가 사용자 범위 Criteria 목록·count, PATCH 최종 값 검증 및 카테고리 행 잠금, JPA version 확인·flush, 소유 거래 삭제를 트랜잭션으로 처리한다. no-op 수정도 OPTIMISTIC 잠금으로 커밋 시 버전을 확인한다. 공통 예외 처리기가 JPA/Spring 낙관적 잠금 오류를 409로 변환한다. 계약 기준은 [PROJECT_SPEC](PROJECT_SPEC.md)의 최신 거래 절이다.
+
+
+## 프런트엔드 초기 구성 반영 (2026-10-21)
+frontend에 React 19.3.1·TypeScript 6.0.3·Vite 8.3.4·Tailwind 4.3.3을 구성했다. shadcn/ui는 Radix/nova 생성 소스를 로컬에서 관리한다. TanStack Query 5가 서버 상태를 관리하고 React Hook Form 7·Zod 4가 입력·응답을 검증한다. Router 7을 사용한다. API fetch는 same-origin 쿠키와 쓰기 전 CSRF 조회, 취소 signal을 전달한다. 사용자별 조회 키와 로그아웃/401 캐시 정리를 적용한다. Vite 개발 프록시를 통해 같은 출처 /api를 사용하며 백엔드 설정은 유지한다. 정확한 패치 버전·재현 설치는 frontend/package-lock.json 기준이다. 기준은 PROJECT_SPEC의 최신 프런트엔드 절이며 실행은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.

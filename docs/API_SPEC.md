@@ -134,3 +134,7 @@ PROJECT_SPEC의 카테고리 서비스·API 계약과 [CATEGORY_API_DESIGN](CATE
 - 현재와 다른 version 또는 실제 동시 수정/삭제 충돌은 409 TRANSACTION_VERSION_CONFLICT. 실제 수정은 version 증가, 동일 값 요청은 현재 version 유지다. 오래된 version은 동일 값이어도 409다.
 - DELETE /api/transactions/{id}: 소유 거래 물리 삭제 204. version/본문 불필요. 타인·없는 거래·반복 삭제는 404 TRANSACTION_NOT_FOUND. 카테고리는 유지한다. 수정/삭제는 기존 세션·CSRF 정책을 따른다.
 - 스키마·의존성·프레임워크 버전은 유지한다. 자세한 계약과 실행은 [설계](TRANSACTION_API_DESIGN.md)와 [가이드](TRANSACTION_API_GUIDE.md)를 따른다.
+
+
+## 프런트엔드 초기 구성 반영 (2026-10-21)
+새 엔드포인트 없이 /api/me·/api/auth/csrf·로그인/로그아웃·거래 목록·보관 포함 카테고리를 브라우저에서 사용한다. API 상대 경로와 쿠키를 유지하고 쓰기 요청마다 새 CSRF 헤더를 전달한다. 목록의 UI 기본값은 전체 기간·20건·최신 날짜순이며 URL 조건으로 조회한다. 클라이언트 owner 조건은 전송하지 않는다. 401 세션 만료는 로그인으로 이동하고 조회 캐시를 비운다. 상세 서버 계약은 변경하지 않는다. 기준은 PROJECT_SPEC의 최신 프런트엔드 절이며 실행은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.

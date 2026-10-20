@@ -194,3 +194,13 @@ feat/transaction의 구현 요청을 기준으로 등록·상세 계약을 구�
 - 현재와 다른 version 또는 실제 동시 수정/삭제 충돌은 409 TRANSACTION_VERSION_CONFLICT. 실제 수정은 version 증가, 동일 값 요청은 현재 version 유지다. 오래된 version은 동일 값이어도 409다.
 - DELETE /api/transactions/{id}: 소유 거래 물리 삭제 204. version/본문 불필요. 타인·없는 거래·반복 삭제는 404 TRANSACTION_NOT_FOUND. 카테고리는 유지한다. 수정/삭제는 기존 세션·CSRF 정책을 따른다.
 - 스키마·의존성·프레임워크 버전은 유지한다. 자세한 계약과 실행은 [설계](TRANSACTION_API_DESIGN.md)와 [가이드](TRANSACTION_API_GUIDE.md)를 따른다.
+
+
+## 프런트엔드 초기 구성·첫 API 연동 확정 (2026-10-21)
+사용자가 React·TypeScript·Vite·Tailwind에 shadcn/ui를 추가하고 로그인에서 거래 목록까지 연결하는 범위를 승인했다. UI 일관성과 첫 브라우저 통합 검증을 위한 기술 구성 보완이며 제품 기능 범위는 유지한다.
+- frontend를 독립 npm 프로젝트로 구성한다. React·TypeScript·Vite·Tailwind·shadcn/ui(Radix/nova)·TanStack Query·React Hook Form·Zod를 사용한다. UI 소스는 프로젝트에서 관리하며 Button·Input·Label·Card를 먼저 도입한다.
+- /login과 /transactions를 구현한다. 초기 진입·새로고침은 GET /api/me로 확인하고 미인증은 로그인으로 이동한다. 로그인·로그아웃 시 세션을 서버에서 관리하고 조회 캐시를 비운다. 소유 리소스 캐시 키에는 사용자 ID를 포함한다. 쿠키·CSRF·비밀번호를 localStorage/sessionStorage에 저장하지 않는다.
+- 모든 API 요청은 동일 출처 상대 경로 /api와 세션 쿠키를 사용한다. 개발 시 Vite가 127.0.0.1:8080으로 프록시한다. 쓰기 요청마다 CSRF를 새로 조회하므로 로그인/로그아웃 전 토큰을 재사용하지 않는다. CORS 출처 허용·백엔드 보안 정책은 변경하지 않는다.
+- 거래 목록은 전체 기간 기본값과 기존 서버의 월·유형·카테고리·검색·정렬·20건 페이지를 연결한다. 조건 변경은 첫 페이지로 이동하고 URL에 적용 조건을 유지한다. 카테고리 필터에는 보관 항목도 표시한다. 검색은 버튼/Enter로 적용한다.
+- 한국어·모바일 우선 공통 레이아웃과 로딩·빈 목록·오류·재시도 상태를 제공한다. 금액 응답의 안전 정수/도메인 범위를 검증하고 정수 원화로 표시한다. 발생일은 DATE 문자열을 유지한다.
+- 이번 범위에 회원가입 화면·거래 등록/수정/삭제 화면·예산/대시보드·구독 화면을 포함하지 않는다. 운영 리버스 프록시·SPA fallback·HTTPS는 배포 단계에서 별도 구성한다. 상세 실행·검증은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.
