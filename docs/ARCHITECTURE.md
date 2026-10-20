@@ -104,3 +104,7 @@ CreateTransactionRequest·TransactionResponse·TransactionController·Transactio
 TransactionRepository에 saveAndFlush, CategoryRepository에 사용자 범위 PESSIMISTIC_READ 조회를 추가했다. 등록 트랜잭션에서 카테고리 소유자·유형·보관 상태를 확인하고 커밋까지 행 잠금을 유지한다. 상세는 findByIdAndUserId로 조회하며 카테고리 보관 여부로 기존 거래를 숨기지 않는다. 공통 오류 처리에 서비스 Bean Validation 400을 추가했다. 스키마·버전·설정·의존성은 유지했다.
 검증: 거래 HTTP 7·서비스 3·DB 통합 5·행 잠금 1을 추가했다. 기존 32개를 포함한 48개를 별도 임시 PostgreSQL에서 직접 실행해 실패/오류/건너뜀 0을 확인했다. 잠금 테스트는 별도 연결의 FOR NO KEY UPDATE NOWAIT가 55P03으로 거부되는지 확인해 단순 FK KEY SHARE와 구분한다. 커밋 후 보관 허용·신규 등록 차단·기존 상세 유지도 검사하고 해당 fixture만 정리한다.
 bootJar와 임시 local 서버에서 실제 세션·CSRF로 등록201·상세200·메모 null/누락→빈 문자열·최대 금액 보존·version0·타인404·보관신규400·보관후상세200·미인증401을 확인했다. 임시 서버·DB는 정리했고 기존 DB·서버는 유지했다. 실제 브라우저·운영 HTTPS·프록시 검증과 거래 수정/목록/삭제·HTTP 충돌 409는 이후 범위다.
+
+
+## 거래 목록·수정·삭제 반영 (2026-10-21)
+사용자가 설계를 승인해 구현한다. TransactionOperations가 사용자 범위 Criteria 목록·count, PATCH 최종 값 검증 및 카테고리 행 잠금, JPA version 확인·flush, 소유 거래 삭제를 트랜잭션으로 처리한다. no-op 수정도 OPTIMISTIC 잠금으로 커밋 시 버전을 확인한다. 공통 예외 처리기가 JPA/Spring 낙관적 잠금 오류를 409로 변환한다. 계약 기준은 [PROJECT_SPEC](PROJECT_SPEC.md)의 최신 거래 절이다.

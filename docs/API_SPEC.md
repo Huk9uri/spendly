@@ -122,3 +122,15 @@ PROJECT_SPEC의 카테고리 서비스·API 계약과 [CATEGORY_API_DESIGN](CATE
 - amount는 JSON 정수 숫자(1~999999999999999)만 허용하고 문자열·소수·지수 표기를 거부한다. type은 문자열 INCOME/EXPENSE, 날짜는 실제 YYYY-MM-DD(0001~9999), UUID는 표준 형식이다. description은 strip·빈 내용 금지·100자, memo는 문자열 공백 유지·1000자다.
 - 미지원 필드·사용자/ID/version/시각 위조는 400. 미인증 401·CSRF 403. 없는/타인 거래 404 TRANSACTION_NOT_FOUND, 없는/타인 카테고리 404 CATEGORY_NOT_FOUND, 유형 불일치 400 CATEGORY_TYPE_MISMATCH, 보관 카테고리 400 CATEGORY_ARCHIVED다. 입력 오류는 기존 VALIDATION_ERROR/INVALID_JSON 공통 형식이며 실제 입력값은 반환하지 않는다.
 - 보관 이후 기존 거래 상세는 허용한다. 목록·수정·삭제·버전 충돌 HTTP 409는 이번 범위가 아니다. [실행 가이드](TRANSACTION_API_GUIDE.md)에 전체 테스트와 수동 HTTP 명령을 기록했다.
+
+
+## 거래 목록·수정·삭제 확정 (2026-10-21)
+사용자가 남은 거래 API 설계를 승인해 조회·부분 수정·삭제 계약을 확정했다. 앞선 미구현/미확정 기록에서 해당 항목을 갱신한다.
+- GET /api/transactions: month(YYYY-MM, 0001~9999)·type(INCOME/EXPENSE)·categoryId(UUID)·q를 AND로 적용한다. month 누락은 전체 기간, 유효하지만 없는/타인 카테고리 필터는 빈 목록이다. q는 strip·최대 100자이며 description 또는 memo의 대소문자 무시 부분 검색이다. %, _, 역슬래시는 실제 문자로 검색한다.
+- page 기본 0, size 기본 20(1~100). sort 기본 occurredOn,desc이며 occurredOn/amount/createdAt과 asc/desc만 허용한다. id도 같은 방향으로 정렬해 동률을 고정한다. 음수 페이지·미지원 조건과 JPA 조회 오프셋(page*size)이 정수 범위를 넘는 요청은 400이다.
+- 목록 응답은 content·page·size·totalElements·totalPages. 조회 결과가 없으면 content=[]와 합계 0, 마지막 페이지를 넘으면 content=[]와 실제 전체 합계를 반환한다.
+- PATCH /api/transactions/{id}: 비음수 정수 version 필수, type·amount·categoryId·occurredOn·description·memo 중 최소 1개를 전달한다. 누락은 유지, memo:null은 빈 문자열, 나머지 null과 미지원 필드는 400. 값 검증은 등록과 같다.
+- 변경 후 사용자·유형이 일치해야 한다. 다른 카테고리를 선택하면 사용 중인 항목이어야 한다. 기존 카테고리 ID·유형을 유지하는 수정은 보관 후에도 허용한다.
+- 현재와 다른 version 또는 실제 동시 수정/삭제 충돌은 409 TRANSACTION_VERSION_CONFLICT. 실제 수정은 version 증가, 동일 값 요청은 현재 version 유지다. 오래된 version은 동일 값이어도 409다.
+- DELETE /api/transactions/{id}: 소유 거래 물리 삭제 204. version/본문 불필요. 타인·없는 거래·반복 삭제는 404 TRANSACTION_NOT_FOUND. 카테고리는 유지한다. 수정/삭제는 기존 세션·CSRF 정책을 따른다.
+- 스키마·의존성·프레임워크 버전은 유지한다. 자세한 계약과 실행은 [설계](TRANSACTION_API_DESIGN.md)와 [가이드](TRANSACTION_API_GUIDE.md)를 따른다.
