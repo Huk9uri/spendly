@@ -72,6 +72,15 @@ public class Transaction {
         this.memo = memo;
     }
 
+    void edit(CreateTransactionRequest values) {
+        categoryId = values.categoryId();
+        type = values.type();
+        if (amount.compareTo(values.amount()) != 0) { amount = values.amount(); }
+        occurredOn = values.occurredOn();
+        description = values.description();
+        memo = values.memo();
+    }
+
     @PrePersist
     void initializeTimestamps() {
         createdAt = Instant.now();

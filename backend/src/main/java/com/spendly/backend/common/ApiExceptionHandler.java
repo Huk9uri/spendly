@@ -17,6 +17,11 @@ import jakarta.validation.ConstraintViolationException;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    @ExceptionHandler({org.springframework.dao.OptimisticLockingFailureException.class, jakarta.persistence.OptimisticLockException.class})
+    ResponseEntity<ApiError> transactionConflict() {
+        return ResponseEntity.status(409).body(ApiError.of("TRANSACTION_VERSION_CONFLICT", "거래가 변경되었습니다. 다시 조회해 주세요."));
+    }
+
     @ExceptionHandler(LoginRateLimiter.LimitExceeded.class)
     ResponseEntity<ApiError> rateLimited(LoginRateLimiter.LimitExceeded exception) {
         return ResponseEntity.status(429).header("Retry-After", Long.toString(exception.getRetryAfter()))

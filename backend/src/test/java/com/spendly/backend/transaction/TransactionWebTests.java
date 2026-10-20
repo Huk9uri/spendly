@@ -34,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class TransactionWebTests {
     @Autowired private MockMvc mvc;
     @MockitoBean private TransactionService service;
+    @MockitoBean private TransactionOperations operations;
     @MockitoBean private UserRepository users;
     private UUID ownerId;
     private UUID categoryId;
@@ -49,6 +50,22 @@ class TransactionWebTests {
         ReflectionTestUtils.setField(user, "id", ownerId);
         principal = new SessionUser(user);
         principal.eraseCredentials();
+    }
+
+    @Test
+    void mapsRealOptimisticExceptionTypesToConflictAndProtectsWrites() throws Exception {
+        doThrow(new org.springframework.orm.ObjectOptimisticLockingFailureException(Transaction.class, transactionId))
+                .when(operations).patch(eq(ownerId), eq(transactionId), any());
+        mvc.perform(patch("/api/transactions/{id}", transactionId).with(user(principal)).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0,\"memo\":\"x\"}"))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("TRANSACTION_VERSION_CONFLICT"));
+        doThrow(new jakarta.persistence.OptimisticLockException()).when(operations).delete(ownerId, transactionId);
+        mvc.perform(delete("/api/transactions/{id}", transactionId).with(user(principal)).with(csrf()))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("TRANSACTION_VERSION_CONFLICT"));
+        mvc.perform(patch("/api/transactions/{id}", transactionId).with(user(principal))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"version\":0,\"memo\":\"x\"}"))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/transactions")).andExpect(status().isUnauthorized());
     }
 
     @Test
