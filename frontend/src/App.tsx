@@ -6,6 +6,8 @@ import { userSchema } from "@/lib/contracts";
 import { ErrorState, LoadingState } from "@/components/status";
 import { LoginPage } from "@/pages/login";
 import { TransactionsPage } from "@/pages/transactions";
+import { CategoriesPage } from "@/pages/categories";
+import { TransactionNewPage } from "@/pages/transaction-new";
 
 export default function App() {
   const client = useQueryClient();
@@ -58,6 +60,32 @@ export default function App() {
   const user = session.data;
   return (
     <Routes>
+      <Route
+        path="/transactions/new"
+        element={
+          user ? (
+            <TransactionNewPage user={user} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/settings/categories"
+        element={
+          user ? (
+            <CategoriesPage user={user} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <Navigate to={user ? "/settings/categories" : "/login"} replace />
+        }
+      />
       <Route
         path="/login"
         element={user ? <Navigate to="/transactions" replace /> : <LoginPage />}

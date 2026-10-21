@@ -138,3 +138,7 @@ PROJECT_SPEC의 카테고리 서비스·API 계약과 [CATEGORY_API_DESIGN](CATE
 
 ## 프런트엔드 초기 구성 반영 (2026-10-21)
 새 엔드포인트 없이 /api/me·/api/auth/csrf·로그인/로그아웃·거래 목록·보관 포함 카테고리를 브라우저에서 사용한다. API 상대 경로와 쿠키를 유지하고 쓰기 요청마다 새 CSRF 헤더를 전달한다. 목록의 UI 기본값은 전체 기간·20건·최신 날짜순이며 URL 조건으로 조회한다. 클라이언트 owner 조건은 전송하지 않는다. 401 세션 만료는 로그인으로 이동하고 조회 캐시를 비운다. 상세 서버 계약은 변경하지 않는다. 기준은 PROJECT_SPEC의 최신 프런트엔드 절이며 실행은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.
+
+
+## 카테고리 관리·거래 등록 화면 반영 (2026-10-21)
+화면에서 POST /api/categories·PATCH /api/categories/{id}(name만)·DELETE /api/categories/{id} 및 POST /api/transactions를 호출한다. 카테고리 삭제 시 확인 후 204를 처리하며, 이름 중복 409와 카테고리 상태 변경 오류를 별도 메시지로 표시한다. 거래 금액은 숫자, 메모 미입력은 빈 문자열이며 클라이언트 userId는 전송하지 않는다. 기존 API 계약과 상태 코드는 변경하지 않는다. 기준은 PROJECT_SPEC의 최신 화면 절이다.

@@ -41,14 +41,14 @@ export const transactionPageSchema = z.object({
   totalElements: z.number().int().nonnegative().refine(Number.isSafeInteger),
   totalPages: z.number().int().nonnegative().refine(Number.isSafeInteger),
 });
-export const categoriesSchema = z.array(
-  z.object({
-    id: z.uuid(),
-    name: z.string(),
-    type: z.enum(["INCOME", "EXPENSE"]),
-    archived: z.boolean(),
-  }),
-);
+export const categorySchema = z.object({
+  id: z.uuid(),
+  name: z.string(),
+  type: z.enum(["INCOME", "EXPENSE"]),
+  archived: z.boolean(),
+});
+export const categoriesSchema = z.array(categorySchema);
+export type Category = z.infer<typeof categorySchema>;
 
 export function transactionSearch(params: URLSearchParams): string {
   const result = new URLSearchParams();
