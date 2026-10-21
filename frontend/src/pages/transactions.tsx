@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -28,6 +28,7 @@ const selectClass =
   "h-11 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
 
 export function TransactionsPage({ user }: { user: User }) {
+  const location = useLocation();
   const client = useQueryClient();
   const [params, setParams] = useSearchParams();
   const query = transactionSearch(params);
@@ -100,7 +101,29 @@ export function TransactionsPage({ user }: { user: User }) {
           <p className="mt-3 text-sm text-muted-foreground">
             차곡차곡 쌓인 기록에서 나의 소비 흐름을 살펴보세요.
           </p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              to="/transactions/new"
+              className="inline-flex h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              거래 등록
+            </Link>
+            <Link
+              to="/settings/categories"
+              className="inline-flex h-11 items-center rounded-lg border bg-card px-4 text-sm font-medium hover:bg-secondary"
+            >
+              카테고리 관리
+            </Link>
+          </div>
         </div>
+        {location.state?.transactionCreated && (
+          <p
+            role="status"
+            className="mb-5 rounded-lg bg-primary/10 p-4 text-sm text-primary"
+          >
+            거래를 등록했습니다.
+          </p>
+        )}
         {logout.isError && (
           <p role="alert" className="mb-5 text-sm text-destructive">
             {errorMessage(logout.error)}
@@ -178,7 +201,10 @@ export function TransactionsPage({ user }: { user: User }) {
             className="mt-4 flex gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              update("q", String(new FormData(e.currentTarget).get("q") ?? "").trim());
+              update(
+                "q",
+                String(new FormData(e.currentTarget).get("q") ?? "").trim(),
+              );
             }}
           >
             <Label htmlFor="search" className="sr-only">

@@ -112,3 +112,7 @@ bootJar와 임시 local 서버에서 실제 세션·CSRF로 등록201·상세200
 
 ## 프런트엔드 초기 구성 반영 (2026-10-21)
 frontend에 React 19.3.1·TypeScript 6.0.3·Vite 8.3.4·Tailwind 4.3.3을 구성했다. shadcn/ui는 Radix/nova 생성 소스를 로컬에서 관리한다. TanStack Query 5가 서버 상태를 관리하고 React Hook Form 7·Zod 4가 입력·응답을 검증한다. Router 7을 사용한다. API fetch는 same-origin 쿠키와 쓰기 전 CSRF 조회, 취소 signal을 전달한다. 사용자별 조회 키와 로그아웃/401 캐시 정리를 적용한다. Vite 개발 프록시를 통해 같은 출처 /api를 사용하며 백엔드 설정은 유지한다. 정확한 패치 버전·재현 설치는 frontend/package-lock.json 기준이다. 기준은 PROJECT_SPEC의 최신 프런트엔드 절이며 실행은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.
+
+
+## 카테고리 관리·거래 등록 화면 반영 (2026-10-21)
+CategoriesPage·TransactionNewPage와 공통 FormPage·폼 Zod 스키마를 추가했다. 활성 카테고리 Query는 [categories,userId,active] 키로 보관 포함 목록과 구분한다. 이름 변경/삭제/생성 후 카테고리 prefix를 무효화하고, 거래 생성 후 거래 목록 prefix를 무효화한다. useWatch로 유형을 구독하고 요청 진행 ref로 중복 제출을 막는다. 기존 fetch/CSRF·라우트 보호를 재사용하며 의존성을 추가하지 않는다. 기준은 PROJECT_SPEC의 최신 화면 절이다.

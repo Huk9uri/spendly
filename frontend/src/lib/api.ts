@@ -52,6 +52,15 @@ export async function api<T>(
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === "CATEGORY_ALREADY_EXISTS")
+      return "같은 유형에 이미 사용 중인 이름입니다. 삭제된 카테고리의 이름도 중복 사용할 수 없습니다.";
+    if (error.code === "CATEGORY_ARCHIVED")
+      return "삭제된 카테고리입니다. 다른 카테고리를 선택해 주세요.";
+    if (error.code === "CATEGORY_NOT_FOUND")
+      return "카테고리를 찾을 수 없습니다. 목록을 새로 확인해 주세요.";
+    if (error.code === "CATEGORY_TYPE_MISMATCH")
+      return "거래 유형과 같은 유형의 카테고리를 선택해 주세요.";
+    if (error.status === 400) return "입력값을 확인한 뒤 다시 시도해 주세요.";
     if (error.status === 401) return "이메일 또는 비밀번호를 확인해 주세요.";
     if (error.status === 403)
       return "요청을 확인하지 못했습니다. 다시 시도해 주세요.";

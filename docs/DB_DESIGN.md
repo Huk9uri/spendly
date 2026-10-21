@@ -95,3 +95,7 @@ V1~V3 스키마는 변경하지 않았다. TransactionRepository.saveAndFlush로
 
 ## 프런트엔드 초기 구성 반영 (2026-10-21)
 프런트엔드 초기 구성·첫 API 연동은 스키마·마이그레이션을 변경하지 않는다. 실제 브라우저 테스트는 임시 PostgreSQL의 가짜 계정·거래를 사용하고 컨테이너를 정리한다. 날짜는 DATE 문자열, 금액은 Number 안전 정수 및 기존 범위로 검증한다. 기준은 PROJECT_SPEC의 최신 프런트엔드 절이며 실행은 [FRONTEND_GUIDE](FRONTEND_GUIDE.md)를 따른다.
+
+
+## 카테고리 관리·거래 등록 화면 반영 (2026-10-21)
+카테고리 관리·거래 등록 화면에서 기존 POST/PATCH/DELETE API를 사용한다. DB 스키마와 Flyway 변경은 없다. 카테고리 삭제는 archived=true로 기존 거래 FK를 유지한다. 화면은 정수 금액과 문자열 DATE를 전달하며 소유자·유형·삭제 상태의 최종 검증은 서버가 수행한다. 기준은 PROJECT_SPEC의 최신 화면 절이다.
